@@ -2,7 +2,7 @@ package com.silicon.enums;
 
 
 public enum GameStatus {
-    PROGRESS,
+    IN_PROGRESS,
     WON,
     LOST;
 }
