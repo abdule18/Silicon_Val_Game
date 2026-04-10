@@ -1,6 +1,5 @@
 package com.silicon.config;
 
-import com.silicon.console.Console;
 import com.silicon.model.Location;
 import com.silicon.repositories.LocationRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -11,7 +10,6 @@ import java.util.List;
 @Component
 public class DataLoader implements CommandLineRunner {
 
-    private static Console console = new Console();
     private final LocationRepository locationRepository;
 
     public DataLoader(LocationRepository locationRepository) {
