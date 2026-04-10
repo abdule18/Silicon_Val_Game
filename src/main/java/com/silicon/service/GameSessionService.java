@@ -45,12 +45,13 @@ public class GameSessionService {
         GameSession game = gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
 
-        if (game.getCurrentLocationIndex() == 6) {
+        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
             return game;
         }
 
         game.setCurrentLocationIndex(game.getCurrentLocationIndex() + 1);
         game.setDayNumber(game.getDayNumber() + 1);
+        game.setBugs(game.getBugs() + 2);
         game.setProgress((game.getCurrentLocationIndex() * 100) / 6);
         game.setCoffee(game.getCoffee() - 1);
 
@@ -64,4 +65,78 @@ public class GameSessionService {
 
         return saved;
     }
+
+    public GameSession rest(UUID id) {
+
+        GameSession game = gameSessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Game id not found"));
+
+        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+            return game;
+        }
+
+        game.setDayNumber(game.getDayNumber() + 1);
+        game.setMorale(Math.min(100, game.getMorale() + 10));
+        game.setCoffee(game.getCoffee() - 1);
+
+        if (game.getCoffee() <= 0) {
+            game.setStatus(GameStatus.LOST);
+        }
+
+        GameSession saved = gameSessionRepository.save(game);
+
+        return saved;
+    }
+
+    public GameSession workOnProduct(UUID id) {
+
+        GameSession game = gameSessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Game id not found"));
+
+        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+            return game;
+        }
+
+        game.setDayNumber(game.getDayNumber() + 1);
+        game.setBugs(Math.max(0, game.getBugs() - 3));
+        game.setMorale(game.getMorale() - 2);
+        game.setCoffee(game.getCoffee() - 1);
+
+        if (game.getCoffee() <= 0 || game.getMorale() <= 0) {
+            game.setStatus(GameStatus.LOST);
+        }
+
+        GameSession saved = gameSessionRepository.save(game);
+
+        return saved;
+    }
+
+    public GameSession marketingPush(UUID id) {
+
+        GameSession game = gameSessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Game id not found"));
+
+        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+            return game;
+        }
+
+        game.setDayNumber(game.getDayNumber() + 1);
+        game.setCash(game.getCash() - 10);
+        game.setCoffee(game.getCoffee() - 1);
+
+        if (game.getBugs() > 5) {
+            game.setHype(Math.max(100, game.getHype() + 5));
+        } else {
+            game.setHype(Math.max(10, game.getHype() + 10));
+        }
+
+        if (game.getCash() <= 0 || game.getCoffee() <= 0) {
+            game.setStatus(GameStatus.LOST);
+        }
+
+        GameSession saved = gameSessionRepository.save(game);
+
+        return saved;
+    }
+
 }

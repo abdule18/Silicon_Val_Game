@@ -32,4 +32,19 @@ public class GameSessionController {
         return ResponseEntity.ok(gameSessionService.travel(id));
     }
 
+    @PostMapping("/{id}/rest")
+    public ResponseEntity<GameSession> rest(@PathVariable UUID id) {
+        return ResponseEntity.ok(gameSessionService.rest(id));
+    }
+
+    @PostMapping("/{id}/work")
+    public ResponseEntity<GameSession> workOnProduct(@PathVariable UUID id) {
+        return ResponseEntity.ok(gameSessionService.workOnProduct(id));
+    }
+
+    @PostMapping("/{id}/marketing")
+    public ResponseEntity<GameSession> marketingPush(@PathVariable UUID id) {
+        return ResponseEntity.ok(gameSessionService.marketingPush(id));
+    }
+
 }
