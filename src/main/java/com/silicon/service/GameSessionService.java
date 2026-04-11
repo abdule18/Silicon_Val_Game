@@ -2,7 +2,9 @@ package com.silicon.service;
 
 import com.silicon.enums.GameStatus;
 import com.silicon.model.GameSession;
+import com.silicon.model.Location;
 import com.silicon.repositories.GameSessionRepository;
+import com.silicon.repositories.LocationRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,8 @@ import java.util.UUID;
 public class GameSessionService {
 
     private final GameSessionRepository gameSessionRepository;
+    private final WeatherService weatherService;
+    private final LocationRepository locationRepository;
 
     public GameSession startNewGame(){
 
@@ -50,6 +54,8 @@ public class GameSessionService {
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(game.getBugs() + 2);
         game.setProgress((game.getCurrentLocationIndex() * 100) / 6);
+        Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
+        weatherService.applyWeatherEffects(game, location.getLatitude(), location.getLongitude());
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getCurrentLocationIndex() == 6) {
