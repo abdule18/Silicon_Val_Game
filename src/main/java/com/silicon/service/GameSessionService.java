@@ -20,24 +20,21 @@ public class GameSessionService {
                 .cash(100)
                 .dayNumber(1)
                 .bugs(0)
-                .coffee(7)
-                .morale(100)
+                .coffee(5)
+                .morale(80)
                 .currentLocationIndex(0)
-                .hype(100)
+                .hype(20)
                 .progress(0)
                 .status(GameStatus.IN_PROGRESS)
                 .build();
-        GameSession saved = gameSessionRepository.save(game);
 
-        return saved;
+        return gameSessionRepository.save(game);
     }
 
     public GameSession findGameById(UUID id) {
 
-        GameSession gameId = gameSessionRepository.findById(id)
+        return gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
-
-        return gameId;
     }
 
     public GameSession travel(UUID id) {
@@ -53,7 +50,7 @@ public class GameSessionService {
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(game.getBugs() + 2);
         game.setProgress((game.getCurrentLocationIndex() * 100) / 6);
-        game.setCoffee(game.getCoffee() - 1);
+        game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getCurrentLocationIndex() == 6) {
             game.setStatus(GameStatus.WON);
@@ -61,9 +58,7 @@ public class GameSessionService {
             game.setStatus(GameStatus.LOST);
         }
 
-        GameSession saved = gameSessionRepository.save(game);
-
-        return saved;
+        return gameSessionRepository.save(game);
     }
 
     public GameSession rest(UUID id) {
@@ -77,15 +72,13 @@ public class GameSessionService {
 
         game.setDayNumber(game.getDayNumber() + 1);
         game.setMorale(Math.min(100, game.getMorale() + 10));
-        game.setCoffee(game.getCoffee() - 1);
+        game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getCoffee() <= 0) {
             game.setStatus(GameStatus.LOST);
         }
 
-        GameSession saved = gameSessionRepository.save(game);
-
-        return saved;
+        return gameSessionRepository.save(game);
     }
 
     public GameSession workOnProduct(UUID id) {
@@ -99,16 +92,14 @@ public class GameSessionService {
 
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(Math.max(0, game.getBugs() - 3));
-        game.setMorale(game.getMorale() - 2);
-        game.setCoffee(game.getCoffee() - 1);
+        game.setMorale(Math.max(0, game.getMorale() - 2));
+        game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getCoffee() <= 0 || game.getMorale() <= 0) {
             game.setStatus(GameStatus.LOST);
         }
 
-        GameSession saved = gameSessionRepository.save(game);
-
-        return saved;
+        return gameSessionRepository.save(game);
     }
 
     public GameSession marketingPush(UUID id) {
@@ -121,22 +112,20 @@ public class GameSessionService {
         }
 
         game.setDayNumber(game.getDayNumber() + 1);
-        game.setCash(game.getCash() - 10);
-        game.setCoffee(game.getCoffee() - 1);
+        game.setCash(Math.max(0, game.getCash() - 10));
+        game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getBugs() > 5) {
-            game.setHype(Math.max(100, game.getHype() + 5));
+            game.setHype(Math.min(100, game.getHype() + 5));
         } else {
-            game.setHype(Math.max(10, game.getHype() + 10));
+            game.setHype(Math.min(100, game.getHype() + 10));
         }
 
         if (game.getCash() <= 0 || game.getCoffee() <= 0) {
             game.setStatus(GameStatus.LOST);
         }
 
-        GameSession saved = gameSessionRepository.save(game);
-
-        return saved;
+        return gameSessionRepository.save(game);
     }
 
 }
