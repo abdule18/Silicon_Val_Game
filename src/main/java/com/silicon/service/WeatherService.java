@@ -23,7 +23,7 @@ public class WeatherService {
             return;
         }
 
-        if (current.getWind_speed_10m() > 10) {
+        if (current.getWind_speed_10m() > 15) {
             game.setCoffee(Math.max(0, game.getCoffee() -1));
         }
 
