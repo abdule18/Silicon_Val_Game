@@ -48,10 +48,9 @@ public class GameSessionService {
 
     public GameSession travel(UUID id) {
 
-        GameSession game = gameSessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Game id not found"));
+        GameSession game = getGame(id);
 
-        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+        if (isGameOver(game)) {
             return game;
         }
 
@@ -74,10 +73,9 @@ public class GameSessionService {
 
     public GameSession rest(UUID id) {
 
-        GameSession game = gameSessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Game id not found"));
+        GameSession game = getGame(id);
 
-        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+        if (isGameOver(game)) {
             return game;
         }
 
@@ -93,10 +91,9 @@ public class GameSessionService {
 
     public GameSession workOnProduct(UUID id) {
 
-        GameSession game = gameSessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Game id not found"));
+        GameSession game = getGame(id);
 
-        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+        if (isGameOver(game)) {
             return game;
         }
 
@@ -114,10 +111,9 @@ public class GameSessionService {
 
     public GameSession marketingPush(UUID id) {
 
-        GameSession game = gameSessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Game id not found"));
+        GameSession game = getGame(id);
 
-        if (game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST) {
+        if (isGameOver(game)) {
             return game;
         }
 
@@ -136,6 +132,16 @@ public class GameSessionService {
         }
 
         return gameSessionRepository.save(game);
+    }
+
+    // =================  Helper methods =======================
+    private GameSession getGame(UUID id) {
+        return gameSessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Game id not found"));
+    }
+
+    private boolean isGameOver(GameSession game) {
+        return game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST;
     }
 
 }
