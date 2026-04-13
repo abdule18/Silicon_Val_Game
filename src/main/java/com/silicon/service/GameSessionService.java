@@ -1,5 +1,6 @@
 package com.silicon.service;
 
+import com.silicon.enums.EventType;
 import com.silicon.enums.GameStatus;
 import com.silicon.model.GameSession;
 import com.silicon.model.Location;
@@ -19,7 +20,7 @@ public class GameSessionService {
     private final LocationRepository locationRepository;
 
     private static final int STARTING_CASH = 100;
-    private static final int FINAL_LOCATION_INDEX = 6;
+    private static final int FINAL_LOCATION_INDEX = 9;
     private static final int MARKETING_COST = 15;
     private static final int TRAVEL_BUG_INCREASE = 2;
 
@@ -46,21 +47,53 @@ public class GameSessionService {
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
     }
 
+    private EventType getRandomEvent() {
+        EventType[] events = EventType.values();
+        int index = (int) (Math.random() * events.length);
+        return events[index];
+    }
+
+    private void applyRandomEvent(GameSession game) {
+        EventType event = getRandomEvent();
+
+        switch (event) {
+            case VC_PITCH -> {
+                game.setCash(Math.min(200, game.getCash() + 15));
+                game.setHype(Math.min(100, game.getHype() + 10));
+                game.setBugs(game.getBugs() + 1);
+            }
+            case TEAM_BURNOUT -> {
+                game.setMorale(Math.max(0, game.getMorale() - 8));
+                game.setBugs(game.getBugs() + 1);
+            }
+            case BUG_BREAKTHROUGH -> {
+                game.setBugs(Math.max(0, game.getBugs() - 2));
+                game.setMorale(Math.min(100, game.getMorale() + 3));
+            }
+        }
+    }
+
     public GameSession travel(UUID id) {
 
         GameSession game = getGame(id);
 
-        if (isGameOver(game)) {
-            return game;
+        if (game.getCurrentLocationIndex() == FINAL_LOCATION_INDEX) {
+            game.setStatus(GameStatus.WON);
+        } else if (game.getCoffee() <= 0 || game.getMorale() <= 0 || game.getCash() <= 0) {
+            game.setStatus(GameStatus.LOST);
         }
+
+
 
         game.setCurrentLocationIndex(game.getCurrentLocationIndex() + 1);
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(game.getBugs() + TRAVEL_BUG_INCREASE);
-        game.setProgress((game.getCurrentLocationIndex() * 100) / 6);
+        game.setProgress((game.getCurrentLocationIndex() * 100) / FINAL_LOCATION_INDEX);
         Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
         weatherService.applyWeatherEffects(game, location.getLatitude(), location.getLongitude());
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
+
+        applyRandomEvent(game);
 
         if (game.getCurrentLocationIndex() == FINAL_LOCATION_INDEX) {
             game.setStatus(GameStatus.WON);
