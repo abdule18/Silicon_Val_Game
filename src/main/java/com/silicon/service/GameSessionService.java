@@ -1,7 +1,9 @@
 package com.silicon.service;
 
+import com.silicon.client.dto.GameSessionResponseDTO;
 import com.silicon.enums.EventType;
 import com.silicon.enums.GameStatus;
+import com.silicon.enums.Move;
 import com.silicon.model.GameSession;
 import com.silicon.model.Location;
 import com.silicon.repositories.GameSessionRepository;
@@ -31,7 +33,7 @@ public class GameSessionService {
                 .dayNumber(1)
                 .bugs(0)
                 .coffee(15)
-                .morale(80)
+                .morale(50)
                 .currentLocationIndex(0)
                 .hype(20)
                 .progress(0)
@@ -41,10 +43,41 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
-    public GameSession findGameById(UUID id) {
+    public GameSessionResponseDTO findGameById(UUID id) {
 
-        return gameSessionRepository.findById(id)
+        GameSession game = gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
+
+        Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
+
+        String weatherSummary = weatherService.getWeatherSummary(
+                location.getLatitude(),
+                location.getLongitude()
+                );
+        String resultMessage = null;
+        boolean gameOver = false;
+
+        if (game.getStatus() == GameStatus.WON) {
+            resultMessage = "🎉 You made it to San Francisco and secured funding!";
+            gameOver = true;
+        } else if (game.getStatus() == GameStatus.LOST) {
+            resultMessage = "💀 Your startup failed. Better luck next time!";
+            gameOver = true;
+        }
+
+        return GameSessionResponseDTO.builder()
+                .dayNumber(game.getDayNumber())
+                .cityName(location.getCityName())
+                .description(location.getDescription())
+                .cash(game.getCash())
+                .morale(game.getMorale())
+                .coffee(game.getCoffee())
+                .hype(game.getHype())
+                .bugs(game.getBugs())
+                .weatherSummary(weatherSummary)
+                .resultMessage(resultMessage)
+                .gameOver(gameOver)
+                .build();
     }
 
     private EventType getRandomEvent() {
@@ -77,13 +110,9 @@ public class GameSessionService {
 
         GameSession game = getGame(id);
 
-        if (game.getCurrentLocationIndex() == FINAL_LOCATION_INDEX) {
-            game.setStatus(GameStatus.WON);
-        } else if (game.getCoffee() <= 0 || game.getMorale() <= 0 || game.getCash() <= 0) {
-            game.setStatus(GameStatus.LOST);
+        if (isGameOver(game)) {
+            return game;
         }
-
-
 
         game.setCurrentLocationIndex(game.getCurrentLocationIndex() + 1);
         game.setDayNumber(game.getDayNumber() + 1);
@@ -132,7 +161,7 @@ public class GameSessionService {
 
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(Math.max(0, game.getBugs() - 3));
-        game.setMorale(Math.max(0, game.getMorale() - 2));
+        game.setMorale(Math.max(0, game.getMorale() - 4));
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         if (game.getCoffee() <= 0 || game.getMorale() <= 0) {
@@ -165,6 +194,18 @@ public class GameSessionService {
         }
 
         return gameSessionRepository.save(game);
+    }
+
+    public GameSessionResponseDTO makeMove(UUID id, Move move) {
+
+        switch (move) {
+            case TRAVEL -> travel(id);
+            case REST -> rest(id);
+            case WORK -> workOnProduct(id);
+            case MARKETING -> marketingPush(id);
+        }
+
+        return findGameById(id);
     }
 
     // =================  Helper methods =======================

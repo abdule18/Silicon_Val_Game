@@ -1,136 +1,289 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Silicon Valley Trail Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #f7f7f7;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
         }
 
-        h1 {
-            text-align: center;
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
         }
 
         .card {
             background: white;
+            border-radius: 12px;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
 
-        button {
-            margin: 5px;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+        h1, h2, h3, p {
+            margin-top: 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
         }
 
         .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
         }
 
-        .stat {
-            margin: 8px 0;
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 15px;
+            cursor: pointer;
+            background: #111827;
+            color: white;
         }
 
-        #message {
+        button:hover {
+            opacity: 0.92;
+        }
+
+        .message {
             margin-top: 15px;
             font-weight: bold;
+            font-size: 16px;
+        }
+
+        .subtle {
+            color: #4b5563;
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            width: 100%;
+            max-width: 420px;
         }
     </style>
 </head>
 <body>
-<h1>Silicon Valley Trail Game</h1>
+<div class="container">
 
-<div class="card">
-    <button onclick="startGame()">Start New Game</button>
-    <div id="message"></div>
-</div>
+    <div id="menuScreen" class="card">
+        <h1>Silicon Valley Trail Game</h1>
+        <p class="subtle">
+            Build your startup, survive the journey, and make it to San Francisco.
+        </p>
 
-<div class="card">
-    <h2>Game State</h2>
-    <div id="gameState">No game started yet.</div>
-</div>
+        <div style="margin-top: 20px;">
+            <button onclick="startNewGame()">Start New Game</button>
+        </div>
 
-<div class="card">
-    <h2>Actions</h2>
-    <div class="actions">
-        <button onclick="performAction('travel')">Travel</button>
-        <button onclick="performAction('rest')">Rest</button>
-        <button onclick="performAction('work')">Work on Product</button>
-        <button onclick="performAction('marketing')">Marketing Push</button>
+        <div style="margin-top: 25px;">
+            <h3>Load Existing Game</h3>
+            <input id="gameIdInput" type="text" placeholder="Enter your saved game ID" />
+            <div style="margin-top: 10px;">
+                <button onclick="loadExistingGame()">Load Game</button>
+            </div>
+        </div>
+
+        <div id="menuMessage" class="message"></div>
     </div>
+
+    <div id="gameScreen" class="hidden">
+        <div class="card">
+            <div class="top-row">
+                <div>
+                    <h2 id="cityName">City Name</h2>
+                    <p id="description" class="subtle">Location description</p>
+                </div>
+                <div>
+                    <strong>Day <span id="dayNumber">1</span></strong>
+                </div>
+            </div>
+
+            <p><strong>Weather:</strong> <span id="weatherSummary">Loading...</span></p>
+            <div id="resultMessage" class="message"></div>
+        </div>
+
+        <div class="card">
+            <h3>Resources</h3>
+            <div class="stats">
+                <div class="stat-box"><strong>Cash:</strong> $<span id="cash">0</span></div>
+                <div class="stat-box"><strong>Morale:</strong> <span id="morale">0</span></div>
+                <div class="stat-box"><strong>Coffee:</strong> <span id="coffee">0</span></div>
+                <div class="stat-box"><strong>Hype:</strong> <span id="hype">0</span></div>
+                <div class="stat-box"><strong>Bugs:</strong> <span id="bugs">0</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Choose Your Move</h3>
+            <div class="actions">
+                <button onclick="makeMove('TRAVEL')">Travel</button>
+                <button onclick="makeMove('REST')">Rest</button>
+                <button onclick="makeMove('WORK')">Work on Product</button>
+                <button onclick="makeMove('MARKETING')">Marketing Push</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="goBackToMenu()">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
     let currentGameId = null;
 
-    function renderGame(game) {
-        document.getElementById("gameState").innerHTML = `
-                <div class="stat"><strong>Game ID:</strong> ${game.id}</div>
-                <div class="stat"><strong>Day:</strong> ${game.dayNumber}</div>
-                <div class="stat"><strong>Location Index:</strong> ${game.currentLocationIndex}</div>
-                <div class="stat"><strong>Cash:</strong> ${game.cash}</div>
-                <div class="stat"><strong>Morale:</strong> ${game.morale}</div>
-                <div class="stat"><strong>Coffee:</strong> ${game.coffee}</div>
-                <div class="stat"><strong>Hype:</strong> ${game.hype}</div>
-                <div class="stat"><strong>Bugs:</strong> ${game.bugs}</div>
-                <div class="stat"><strong>Progress:</strong> ${game.progress}%</div>
-                <div class="stat"><strong>Status:</strong> ${game.status}</div>
-            `;
+    function showMenu() {
+        document.getElementById("menuScreen").classList.remove("hidden");
+        document.getElementById("gameScreen").classList.add("hidden");
     }
 
-    async function startGame() {
+    function showGame() {
+        document.getElementById("menuScreen").classList.add("hidden");
+        document.getElementById("gameScreen").classList.remove("hidden");
+    }
+
+    async function startNewGame() {
         try {
-            const response = await fetch('/api/v1/games', {
-                method: 'POST'
+            clearMenuMessage();
+
+            const response = await fetch("/api/v1/games", {
+                method: "POST"
             });
+
+            if (!response.ok) {
+                throw new Error("Failed to start game");
+            }
 
             const game = await response.json();
             currentGameId = game.id;
-            renderGame(game);
-            document.getElementById("message").textContent = "New game started!";
+
+            await fetchGameState();
+            showGame();
         } catch (error) {
-            document.getElementById("message").textContent = "Failed to start game.";
+            setMenuMessage("Could not start a new game.");
             console.error(error);
         }
     }
 
-    async function performAction(action) {
-        if (!currentGameId) {
-            document.getElementById("message").textContent = "Start a game first.";
-            return;
+    async function loadExistingGame() {
+        try {
+            clearMenuMessage();
+
+            const input = document.getElementById("gameIdInput").value.trim();
+
+            if (!input) {
+                setMenuMessage("Please enter a game ID.");
+                return;
+            }
+
+            currentGameId = input;
+            await fetchGameState();
+            showGame();
+        } catch (error) {
+            setMenuMessage("Could not load that game.");
+            console.error(error);
+        }
+    }
+
+    async function fetchGameState() {
+        const response = await fetch(`/api/v1/games/${currentGameId}`);
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch game state");
         }
 
+        const game = await response.json();
+        renderGame(game);
+    }
+
+    async function makeMove(move) {
         try {
-            const response = await fetch(`/api/v1/games/${currentGameId}/${action}`, {
-                method: 'POST'
+            const response = await fetch(`/api/v1/games/${currentGameId}/move`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ move })
             });
+
+            if (!response.ok) {
+                throw new Error("Move failed");
+            }
 
             const game = await response.json();
             renderGame(game);
-
-            if (game.status === "WON") {
-                document.getElementById("message").textContent = "You won the game!";
-            } else if (game.status === "LOST") {
-                document.getElementById("message").textContent = "You lost the game.";
-            } else {
-                document.getElementById("message").textContent = `Action "${action}" completed.`;
-            }
         } catch (error) {
-            document.getElementById("message").textContent = `Failed to perform action: ${action}`;
+            document.getElementById("resultMessage").textContent = "Something went wrong while making that move.";
             console.error(error);
         }
+    }
+
+    function renderGame(game) {
+        document.getElementById("dayNumber").textContent = game.dayNumber;
+        document.getElementById("cityName").textContent = game.cityName;
+        document.getElementById("description").textContent = game.description;
+        document.getElementById("weatherSummary").textContent = game.weatherSummary;
+
+        document.getElementById("cash").textContent = game.cash;
+        document.getElementById("morale").textContent = game.morale;
+        document.getElementById("coffee").textContent = game.coffee;
+        document.getElementById("hype").textContent = game.hype;
+        document.getElementById("bugs").textContent = game.bugs;
+
+        const resultMessage = document.getElementById("resultMessage");
+
+        if (game.gameOver && game.resultMessage) {
+            resultMessage.textContent = game.resultMessage;
+        } else {
+            resultMessage.textContent = "";
+        }
+    }
+
+    function goBackToMenu() {
+        showMenu();
+    }
+
+    function setMenuMessage(message) {
+        document.getElementById("menuMessage").textContent = message;
+    }
+
+    function clearMenuMessage() {
+        document.getElementById("menuMessage").textContent = "";
     }
 </script>
 </body>

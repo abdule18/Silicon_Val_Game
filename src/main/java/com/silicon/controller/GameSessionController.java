@@ -1,5 +1,7 @@
 package com.silicon.controller;
 
+import com.silicon.client.dto.GameSessionResponseDTO;
+import com.silicon.client.dto.MoveRequestDTO;
 import com.silicon.model.GameSession;
 import com.silicon.service.GameSessionService;
 import jakarta.validation.Valid;
@@ -7,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,8 +26,16 @@ public class GameSessionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GameSession> getGame(@PathVariable UUID id) {
+    public ResponseEntity<GameSessionResponseDTO> getGame(@PathVariable UUID id) {
         return ResponseEntity.ok(gameSessionService.findGameById(id));
+    }
+
+    @PostMapping("/{id}/move")
+    public ResponseEntity<GameSessionResponseDTO> makeMove(
+            @PathVariable UUID id,
+            @RequestBody MoveRequestDTO request
+    ) {
+        return ResponseEntity.ok(gameSessionService.makeMove(id, request.getMove()));
     }
 
     @PostMapping("/{id}/travel")
