@@ -20,6 +20,7 @@ public class GameSessionResponseDTO {
     private int bugs;
 
     private String weatherSummary;
+    private String eventMessage;
     private String resultMessage;   // null unless won/lost
     private boolean gameOver;
 }

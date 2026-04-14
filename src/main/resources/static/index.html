@@ -86,19 +86,13 @@
             gap: 12px;
             flex-wrap: wrap;
         }
-
-        input {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            width: 100%;
-            max-width: 420px;
-        }
     </style>
 </head>
 <body>
+
 <div class="container">
 
+    <!-- MENU SCREEN -->
     <div id="menuScreen" class="card">
         <h1>Silicon Valley Trail Game</h1>
         <p class="subtle">
@@ -109,18 +103,13 @@
             <button onclick="startNewGame()">Start New Game</button>
         </div>
 
-<!--        <div style="margin-top: 25px;">-->
-<!--            <h3>Load Existing Game</h3>-->
-<!--            <input id="gameIdInput" type="text" placeholder="Enter your saved game ID" />-->
-<!--            <div style="margin-top: 10px;">-->
-<!--                <button onclick="loadExistingGame()">Load Game</button>-->
-<!--            </div>-->
-<!--        </div>-->
-
         <div id="menuMessage" class="message"></div>
     </div>
 
+    <!-- GAME SCREEN -->
     <div id="gameScreen" class="hidden">
+
+        <!-- LOCATION + WEATHER -->
         <div class="card">
             <div class="top-row">
                 <div>
@@ -133,9 +122,12 @@
             </div>
 
             <p><strong>Weather:</strong> <span id="weatherSummary">Loading...</span></p>
+            <p><strong>Event:</strong> <span id="eventMessage">No event yet.</span></p>
+
             <div id="resultMessage" class="message"></div>
         </div>
 
+        <!-- STATS -->
         <div class="card">
             <h3>Resources</h3>
             <div class="stats">
@@ -147,6 +139,7 @@
             </div>
         </div>
 
+        <!-- ACTIONS -->
         <div class="card">
             <h3>Choose Your Move</h3>
             <div class="actions">
@@ -160,8 +153,8 @@
                 <button onclick="goBackToMenu()">Back to Menu</button>
             </div>
         </div>
-    </div>
 
+    </div>
 </div>
 
 <script>
@@ -200,26 +193,6 @@
         }
     }
 
-    // async function loadExistingGame() {
-    //     try {
-    //         clearMenuMessage();
-    //
-    //         const input = document.getElementById("gameIdInput").value.trim();
-    //
-    //         if (!input) {
-    //             setMenuMessage("Please enter a game ID.");
-    //             return;
-    //         }
-    //
-    //         currentGameId = input;
-    //         await fetchGameState();
-    //         showGame();
-    //     } catch (error) {
-    //         setMenuMessage("Could not load that game.");
-    //         console.error(error);
-    //     }
-    // }
-
     async function fetchGameState() {
         const response = await fetch(`/api/v1/games/${currentGameId}`);
 
@@ -248,7 +221,8 @@
             const game = await response.json();
             renderGame(game);
         } catch (error) {
-            document.getElementById("resultMessage").textContent = "Something went wrong while making that move.";
+            document.getElementById("resultMessage").textContent =
+                "Something went wrong while making that move.";
             console.error(error);
         }
     }
@@ -258,6 +232,9 @@
         document.getElementById("cityName").textContent = game.cityName;
         document.getElementById("description").textContent = game.description;
         document.getElementById("weatherSummary").textContent = game.weatherSummary;
+
+        document.getElementById("eventMessage").textContent =
+            game.eventMessage || "No event this turn.";
 
         document.getElementById("cash").textContent = game.cash;
         document.getElementById("morale").textContent = game.morale;
@@ -286,5 +263,6 @@
         document.getElementById("menuMessage").textContent = "";
     }
 </script>
+
 </body>
 </html>

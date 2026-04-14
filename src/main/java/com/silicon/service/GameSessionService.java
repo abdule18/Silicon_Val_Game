@@ -22,14 +22,13 @@ public class GameSessionService {
     private final WeatherService weatherService;
     private final LocationRepository locationRepository;
 
-    // Default values used when a brand-new session is created.
     private static final int STARTING_CASH = 100;
     private static final int FINAL_LOCATION_INDEX = 9;
     private static final int MARKETING_COST = 15;
     private static final int TRAVEL_BUG_INCREASE = 2;
 
-    // Creates the initial game state with balanced starter resources.
-    public GameSession startNewGame(){
+    // Creates the starting game state
+    public GameSession startNewGame() {
         GameSession game = GameSession.builder()
                 .cash(STARTING_CASH)
                 .dayNumber(1)
@@ -45,14 +44,19 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
-    // Builds the response model the frontend uses to display the current game view.
+    // Normal frontend fetch: no new event happened, so eventMessage is null
     public GameSessionResponseDTO findGameById(UUID id) {
         GameSession game = gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
 
+        return buildResponse(game, null);
+    }
+
+    // Builds the response object the frontend uses
+    private GameSessionResponseDTO buildResponse(GameSession game, String eventMessage) {
         Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
 
-        // Weather is tied to the player's current location.
+        // Weather summary is only for display on the frontend
         String weatherSummary = weatherService.getWeatherSummary(
                 location.getLatitude(),
                 location.getLongitude()
@@ -61,7 +65,6 @@ public class GameSessionService {
         String resultMessage = null;
         boolean gameOver = false;
 
-        // Add a final message only after the game ends.
         if (game.getStatus() == GameStatus.WON) {
             resultMessage = "🎉 You made it to San Francisco and secured funding!";
             gameOver = true;
@@ -80,19 +83,20 @@ public class GameSessionService {
                 .hype(game.getHype())
                 .bugs(game.getBugs())
                 .weatherSummary(weatherSummary)
+                .eventMessage(eventMessage)   // send random event to frontend
                 .resultMessage(resultMessage)
                 .gameOver(gameOver)
                 .build();
     }
 
+    // Picks one random event from the EventType enum
     private EventType getRandomEvent() {
         EventType[] events = EventType.values();
         Random random = new Random();
-
         return events[random.nextInt(events.length)];
     }
 
-    // Adds a random event so each turn can slightly change the game flow.
+    // Applies the event to the game state and returns a message for the UI
     private String applyRandomEvent(GameSession game) {
         EventType event = getRandomEvent();
 
@@ -116,10 +120,11 @@ public class GameSessionService {
         };
     }
 
-    // Travel advances the player to the next city and applies related costs.
+    // Travel moves the player forward and applies weather + random event
     public GameSession travel(UUID id) {
         GameSession game = getGame(id);
 
+        // Do nothing if the game already ended
         if (isGameOver(game)) {
             return game;
         }
@@ -128,29 +133,31 @@ public class GameSessionService {
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(game.getBugs() + TRAVEL_BUG_INCREASE);
 
-        // Progress is calculated from the current route position.
+        // Progress is based on route position
         game.setProgress((game.getCurrentLocationIndex() * 100) / FINAL_LOCATION_INDEX);
 
         Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
 
-        // Weather affects the player differently depending on the destination city.
+        // Weather changes the game stats during travel
         weatherService.applyWeatherEffects(game, location.getLatitude(), location.getLongitude());
 
-        // Every trip consumes some coffee.
+        // Travel consumes coffee
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
-        applyRandomEvent(game);
+        // Random event happens after travel
+        String eventMessage = applyRandomEvent(game);
 
+        // Check for win/loss after all travel effects are applied
         if (game.getCurrentLocationIndex() == FINAL_LOCATION_INDEX) {
             game.setStatus(GameStatus.WON);
-        } else if (game.getCoffee() <= 0) {
+        } else if (game.getCoffee() <= 0 || game.getMorale() <= 0 || game.getCash() <= 0) {
             game.setStatus(GameStatus.LOST);
         }
 
         return gameSessionRepository.save(game);
     }
 
-    // Rest recovers morale but still consumes a day.
+    // Rest increases morale
     public GameSession rest(UUID id) {
         GameSession game = getGame(id);
 
@@ -161,6 +168,7 @@ public class GameSessionService {
         game.setDayNumber(game.getDayNumber() + 1);
         game.setMorale(Math.min(100, game.getMorale() + 10));
 
+        // Keep this if resting should still be able to lose when coffee is already empty
         if (game.getCoffee() <= 0) {
             game.setStatus(GameStatus.LOST);
         }
@@ -168,7 +176,7 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
-    // Working on the product reduces bugs, but it also costs morale and energy.
+    // Work reduces bugs but costs morale and coffee
     public GameSession workOnProduct(UUID id) {
         GameSession game = getGame(id);
 
@@ -188,7 +196,7 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
-    // Marketing spends cash in exchange for more hype.
+    // Marketing spends cash and increases hype
     public GameSession marketingPush(UUID id) {
         GameSession game = getGame(id);
 
@@ -200,7 +208,6 @@ public class GameSessionService {
         game.setCash(Math.max(0, game.getCash() - MARKETING_COST));
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
-        // A cleaner product gets a better response from marketing.
         if (game.getBugs() > 5) {
             game.setHype(Math.min(100, game.getHype() + 5));
         } else {
@@ -214,25 +221,63 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
-    // Routes the requested move to the matching game action.
+    // Main dispatcher for frontend moves
     public GameSessionResponseDTO makeMove(UUID id, Move move) {
         switch (move) {
-            case TRAVEL -> travel(id);
-            case REST -> rest(id);
-            case WORK -> workOnProduct(id);
-            case MARKETING -> marketingPush(id);
+            case TRAVEL -> {
+                // We need the event message for travel, so handle it here
+                GameSession game = getGame(id);
+
+                if (isGameOver(game)) {
+                    return buildResponse(game, null);
+                }
+
+                game.setCurrentLocationIndex(game.getCurrentLocationIndex() + 1);
+                game.setDayNumber(game.getDayNumber() + 1);
+                game.setBugs(game.getBugs() + TRAVEL_BUG_INCREASE);
+                game.setProgress((game.getCurrentLocationIndex() * 100) / FINAL_LOCATION_INDEX);
+
+                Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
+
+                weatherService.applyWeatherEffects(game, location.getLatitude(), location.getLongitude());
+                game.setCoffee(Math.max(0, game.getCoffee() - 1));
+
+                // Capture event message so frontend can display it
+                String eventMessage = applyRandomEvent(game);
+
+                if (game.getCurrentLocationIndex() == FINAL_LOCATION_INDEX) {
+                    game.setStatus(GameStatus.WON);
+                } else if (game.getCoffee() <= 0 || game.getMorale() <= 0 || game.getCash() <= 0) {
+                    game.setStatus(GameStatus.LOST);
+                }
+
+                GameSession savedGame = gameSessionRepository.save(game);
+                return buildResponse(savedGame, eventMessage);
+            }
+            case REST -> {
+                rest(id);
+                return findGameById(id);
+            }
+            case WORK -> {
+                workOnProduct(id);
+                return findGameById(id);
+            }
+            case MARKETING -> {
+                marketingPush(id);
+                return findGameById(id);
+            }
         }
 
-        return findGameById(id);
+        throw new RuntimeException("Invalid move");
     }
 
-    // Helper methods
-
+    // Helper: get game by id
     private GameSession getGame(UUID id) {
         return gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
     }
 
+    // Helper: check if game already ended
     private boolean isGameOver(GameSession game) {
         return game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST;
     }
