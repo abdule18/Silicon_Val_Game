@@ -109,13 +109,13 @@
             <button onclick="startNewGame()">Start New Game</button>
         </div>
 
-        <div style="margin-top: 25px;">
-            <h3>Load Existing Game</h3>
-            <input id="gameIdInput" type="text" placeholder="Enter your saved game ID" />
-            <div style="margin-top: 10px;">
-                <button onclick="loadExistingGame()">Load Game</button>
-            </div>
-        </div>
+<!--        <div style="margin-top: 25px;">-->
+<!--            <h3>Load Existing Game</h3>-->
+<!--            <input id="gameIdInput" type="text" placeholder="Enter your saved game ID" />-->
+<!--            <div style="margin-top: 10px;">-->
+<!--                <button onclick="loadExistingGame()">Load Game</button>-->
+<!--            </div>-->
+<!--        </div>-->
 
         <div id="menuMessage" class="message"></div>
     </div>
@@ -200,25 +200,25 @@
         }
     }
 
-    async function loadExistingGame() {
-        try {
-            clearMenuMessage();
-
-            const input = document.getElementById("gameIdInput").value.trim();
-
-            if (!input) {
-                setMenuMessage("Please enter a game ID.");
-                return;
-            }
-
-            currentGameId = input;
-            await fetchGameState();
-            showGame();
-        } catch (error) {
-            setMenuMessage("Could not load that game.");
-            console.error(error);
-        }
-    }
+    // async function loadExistingGame() {
+    //     try {
+    //         clearMenuMessage();
+    //
+    //         const input = document.getElementById("gameIdInput").value.trim();
+    //
+    //         if (!input) {
+    //             setMenuMessage("Please enter a game ID.");
+    //             return;
+    //         }
+    //
+    //         currentGameId = input;
+    //         await fetchGameState();
+    //         showGame();
+    //     } catch (error) {
+    //         setMenuMessage("Could not load that game.");
+    //         console.error(error);
+    //     }
+    // }
 
     async function fetchGameState() {
         const response = await fetch(`/api/v1/games/${currentGameId}`);
