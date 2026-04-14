@@ -14,8 +14,8 @@ public class WeatherClient {
         this.restClient = RestClient.create();
     }
 
+    // Calls the external weather API and maps the response into a Java DTO.
     public WeatherResponse getCurrentWeather(double lat, double lon) {
-
         String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat +
                 "&longitude=" + lon +
                 "&current=temperature_2m,wind_speed_10m,weather_code";

@@ -19,17 +19,20 @@ public class GameSessionController {
 
     private final GameSessionService gameSessionService;
 
+    // Starts a new game and returns the created session to the client.
     @PostMapping()
     public ResponseEntity<GameSession> startGame() {
         GameSession saved = gameSessionService.startNewGame();
         return ResponseEntity.status(201).body(saved);
     }
 
+    // Returns the current state of the requested game session.
     @GetMapping("/{id}")
     public ResponseEntity<GameSessionResponseDTO> getGame(@PathVariable UUID id) {
         return ResponseEntity.ok(gameSessionService.findGameById(id));
     }
 
+    // Applies the selected move and returns the updated game state.
     @PostMapping("/{id}/move")
     public ResponseEntity<GameSessionResponseDTO> makeMove(
             @PathVariable UUID id,
@@ -38,24 +41,26 @@ public class GameSessionController {
         return ResponseEntity.ok(gameSessionService.makeMove(id, request.getMove()));
     }
 
-    @PostMapping("/{id}/travel")
-    public ResponseEntity<GameSession> travel(@PathVariable UUID id) {
-        return ResponseEntity.ok(gameSessionService.travel(id));
-    }
-
-    @PostMapping("/{id}/rest")
-    public ResponseEntity<GameSession> rest(@PathVariable UUID id) {
-        return ResponseEntity.ok(gameSessionService.rest(id));
-    }
-
-    @PostMapping("/{id}/work")
-    public ResponseEntity<GameSession> workOnProduct(@PathVariable UUID id) {
-        return ResponseEntity.ok(gameSessionService.workOnProduct(id));
-    }
-
-    @PostMapping("/{id}/marketing")
-    public ResponseEntity<GameSession> marketingPush(@PathVariable UUID id) {
-        return ResponseEntity.ok(gameSessionService.marketingPush(id));
-    }
-
+// The commented-out actions below were part of an earlier API design
+// where each player action had its own endpoint.
+// They are kept here as reference in case the gameplay flow is expanded again.
+//    @PostMapping("/{id}/travel")
+//    public ResponseEntity<GameSession> travel(@PathVariable UUID id) {
+//        return ResponseEntity.ok(gameSessionService.travel(id));
+//    }
+//
+//    @PostMapping("/{id}/rest")
+//    public ResponseEntity<GameSession> rest(@PathVariable UUID id) {
+//        return ResponseEntity.ok(gameSessionService.rest(id));
+//    }
+//
+//    @PostMapping("/{id}/work")
+//    public ResponseEntity<GameSession> workOnProduct(@PathVariable UUID id) {
+//        return ResponseEntity.ok(gameSessionService.workOnProduct(id));
+//    }
+//
+//    @PostMapping("/{id}/marketing")
+//    public ResponseEntity<GameSession> marketingPush(@PathVariable UUID id) {
+//        return ResponseEntity.ok(gameSessionService.marketingPush(id));
+//    }
 }

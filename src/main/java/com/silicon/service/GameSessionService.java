@@ -11,6 +11,7 @@ import com.silicon.repositories.LocationRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -21,13 +22,14 @@ public class GameSessionService {
     private final WeatherService weatherService;
     private final LocationRepository locationRepository;
 
+    // Default values used when a brand-new session is created.
     private static final int STARTING_CASH = 100;
     private static final int FINAL_LOCATION_INDEX = 9;
     private static final int MARKETING_COST = 15;
     private static final int TRAVEL_BUG_INCREASE = 2;
 
+    // Creates the initial game state with balanced starter resources.
     public GameSession startNewGame(){
-
         GameSession game = GameSession.builder()
                 .cash(STARTING_CASH)
                 .dayNumber(1)
@@ -43,20 +45,23 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
+    // Builds the response model the frontend uses to display the current game view.
     public GameSessionResponseDTO findGameById(UUID id) {
-
         GameSession game = gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
 
         Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
 
+        // Weather is tied to the player's current location.
         String weatherSummary = weatherService.getWeatherSummary(
                 location.getLatitude(),
                 location.getLongitude()
-                );
+        );
+
         String resultMessage = null;
         boolean gameOver = false;
 
+        // Add a final message only after the game ends.
         if (game.getStatus() == GameStatus.WON) {
             resultMessage = "🎉 You made it to San Francisco and secured funding!";
             gameOver = true;
@@ -82,32 +87,37 @@ public class GameSessionService {
 
     private EventType getRandomEvent() {
         EventType[] events = EventType.values();
-        int index = (int) (Math.random() * events.length);
-        return events[index];
+        Random random = new Random();
+
+        return events[random.nextInt(events.length)];
     }
 
-    private void applyRandomEvent(GameSession game) {
+    // Adds a random event so each turn can slightly change the game flow.
+    private String applyRandomEvent(GameSession game) {
         EventType event = getRandomEvent();
 
-        switch (event) {
+        return switch (event) {
             case VC_PITCH -> {
                 game.setCash(Math.min(200, game.getCash() + 15));
                 game.setHype(Math.min(100, game.getHype() + 10));
                 game.setBugs(game.getBugs() + 1);
+                yield "🎤 VC Pitch! Cash and hype increased.";
             }
             case TEAM_BURNOUT -> {
                 game.setMorale(Math.max(0, game.getMorale() - 8));
                 game.setBugs(game.getBugs() + 1);
+                yield "😴 Team burnout! Morale dropped.";
             }
             case BUG_BREAKTHROUGH -> {
                 game.setBugs(Math.max(0, game.getBugs() - 2));
                 game.setMorale(Math.min(100, game.getMorale() + 3));
+                yield "🐛 Breakthrough! Bugs reduced.";
             }
-        }
+        };
     }
 
+    // Travel advances the player to the next city and applies related costs.
     public GameSession travel(UUID id) {
-
         GameSession game = getGame(id);
 
         if (isGameOver(game)) {
@@ -117,9 +127,16 @@ public class GameSessionService {
         game.setCurrentLocationIndex(game.getCurrentLocationIndex() + 1);
         game.setDayNumber(game.getDayNumber() + 1);
         game.setBugs(game.getBugs() + TRAVEL_BUG_INCREASE);
+
+        // Progress is calculated from the current route position.
         game.setProgress((game.getCurrentLocationIndex() * 100) / FINAL_LOCATION_INDEX);
+
         Location location = locationRepository.findByRouteIndex(game.getCurrentLocationIndex());
+
+        // Weather affects the player differently depending on the destination city.
         weatherService.applyWeatherEffects(game, location.getLatitude(), location.getLongitude());
+
+        // Every trip consumes some coffee.
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
         applyRandomEvent(game);
@@ -133,8 +150,8 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
+    // Rest recovers morale but still consumes a day.
     public GameSession rest(UUID id) {
-
         GameSession game = getGame(id);
 
         if (isGameOver(game)) {
@@ -151,8 +168,8 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
+    // Working on the product reduces bugs, but it also costs morale and energy.
     public GameSession workOnProduct(UUID id) {
-
         GameSession game = getGame(id);
 
         if (isGameOver(game)) {
@@ -171,8 +188,8 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
+    // Marketing spends cash in exchange for more hype.
     public GameSession marketingPush(UUID id) {
-
         GameSession game = getGame(id);
 
         if (isGameOver(game)) {
@@ -183,6 +200,7 @@ public class GameSessionService {
         game.setCash(Math.max(0, game.getCash() - MARKETING_COST));
         game.setCoffee(Math.max(0, game.getCoffee() - 1));
 
+        // A cleaner product gets a better response from marketing.
         if (game.getBugs() > 5) {
             game.setHype(Math.min(100, game.getHype() + 5));
         } else {
@@ -196,8 +214,8 @@ public class GameSessionService {
         return gameSessionRepository.save(game);
     }
 
+    // Routes the requested move to the matching game action.
     public GameSessionResponseDTO makeMove(UUID id, Move move) {
-
         switch (move) {
             case TRAVEL -> travel(id);
             case REST -> rest(id);
@@ -208,7 +226,8 @@ public class GameSessionService {
         return findGameById(id);
     }
 
-    // =================  Helper methods =======================
+    // Helper methods
+
     private GameSession getGame(UUID id) {
         return gameSessionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Game id not found"));
@@ -217,5 +236,4 @@ public class GameSessionService {
     private boolean isGameOver(GameSession game) {
         return game.getStatus() == GameStatus.WON || game.getStatus() == GameStatus.LOST;
     }
-
 }
